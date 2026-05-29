@@ -1,0 +1,38 @@
+name: Daily Forecast Refresh
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update last_built.json
+        run: |
+          cat > last_built.json <<EOF
+          {
+            "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "note": "Updated daily by .github/workflows/daily-refresh.yml"
+          }
+          EOF
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet last_built.json; then
+            git add last_built.json
+            git commit -m "chore: refresh last_built timestamp"
+            git push
+          else
+            echo "No changes to commit."
+          fi

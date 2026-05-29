@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wedding Weather Forecast — June 13, 2026</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --card: #ffffff;
+      --ink: #2a2a2a;
+      --muted: #6b6b6b;
+      --accent: #8b6f47;
+      --accent-soft: #d4c4a8;
+      --border: #e8e2d5;
+      --good: #4a7c59;
+      --warn: #c97b3a;
+      --bad: #a14444;
+      --shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, 'Times New Roman', serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    header {
+      text-align: center;
+      padding: 2.5rem 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      font-weight: 400;
+      font-size: 2rem;
+      margin: 0 0 0.25rem;
+      letter-spacing: 0.5px;
+    }
+    header .subtitle {
+      color: var(--muted);
+      font-style: italic;
+      font-size: 1.05rem;
+    }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-bottom: 1.25rem;
+    }
+    .grid {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      font-weight: 500;
+      font-size: 1.15rem;
+      margin: 0 0 0.25rem;
+      color: var(--accent);
+    }
+    .card .coords {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      font-family: 'Courier New', monospace;
+    }
+    .summary {
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border-left: 3px solid var(--accent-soft);
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+    .summary .risk-label {
+      font-weight: 600;
+      display: inline-block;
+      margin-right: 0.5rem;
+    }
+    .risk-low { color: var(--good); }
+    .risk-med { color: var(--warn); }
+    .risk-high { color: var(--bad); }
+    .current {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.5rem 1rem;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .current dt { color: var(--muted); }
+    .current dd { margin: 0; }
+    .chart-wrap {
+      position: relative;
+      height: 220px;
+    }
+    .placeholder {
+      padding: 1rem;
+      text-align: center;
+      color: var(--muted);
+      font-style: italic;
+      background: var(--bg);
+      border-radius: 4px;
+    }
+    .error {
+      padding: 1rem;
+      background: #fef0f0;
+      border-left: 3px solid var(--bad);
+      color: var(--bad);
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    #map {
+      height: 360px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .map-card { padding: 0; overflow: hidden; }
+    .map-card h2 { padding: 1.25rem 1.25rem 0; margin: 0 0 0.75rem; }
+    .map-card #map { border-radius: 0; border: none; border-top: 1px solid var(--border); }
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent); }
+    .leaflet-popup-content { font-family: Georgia, serif; }
+    .leaflet-popup-content strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Wedding Weather Forecast</h1>
+    <div class="subtitle">Saturday, June 13, 2026 &middot; Central Florida</div>
+  </header>
+  <main>
+    <div class="meta-row">
+      <span id="updated">Loading forecast…</span>
+      <span>Source: <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a></span>
+    </div>
+
+    <div class="grid grid-2" id="venue-cards">
+      <section class="card" data-venue="altamonte">
+        <h2>Altamonte Springs</h2>
+        <div class="coords">28.6611, -81.3656</div>
+        <div class="summary" data-role="summary">Loading…</div>
+        <dl class="current" data-role="current"></dl>
+        <div class="chart-wrap"><canvas data-role="chart"></canvas></div>
+      </section>
+      <section class="card" data-venue="howey">
+        <h2>Howey-in-the-Hills</h2>
+        <div class="coords">28.7197, -81.7787</div>
+        <div class="summary" data-role="summary">Loading…</div>
+        <dl class="current" data-role="current"></dl>
+        <div class="chart-wrap"><canvas data-role="chart"></canvas></div>
+      </section>
+    </div>
+
+    <section class="card map-card" style="margin-top: 1.25rem;">
+      <h2>Venue Map</h2>
+      <div id="map"></div>
+    </section>
+  </main>
+  <footer>
+    Forecast data refreshes on every page load from the National Weather Service. <br/>
+    Hourly forecasts become available within 7 days of the target date.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const TARGET_DATE = '2026-06-13';
+    const VENUES = [
+      { key: 'altamonte', name: 'Altamonte Springs', lat: 28.6611, lon: -81.3656 },
+      { key: 'howey', name: 'Howey-in-the-Hills', lat: 28.7197, lon: -81.7787 },
+    ];
+
+    const charts = {};
+
+    function isWithinForecastWindow() {
+      const target = new Date(TARGET_DATE + 'T12:00:00Z');
+      const now = new Date();
+      const diffDays = (target - now) / (1000 * 60 * 60 * 24);
+      return diffDays <= 7 && diffDays >= -1;
+    }
+
+    async function fetchJSON(url) {
+      const res = await fetch(url, { headers: { 'Accept': 'application/geo+json' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      return res.json();
+    }
+
+    async function getForecast(venue) {
+      const points = await fetchJSON(`https://api.weather.gov/points/${venue.lat},${venue.lon}`);
+      const hourlyUrl = points.properties.forecastHourly;
+      const forecast = await fetchJSON(hourlyUrl);
+      return forecast.properties.periods;
+    }
+
+    function filterTargetDay(periods) {
+      return periods.filter(p => p.startTime.startsWith(TARGET_DATE));
+    }
+
+    function riskBucket(maxPct) {
+      if (maxPct < 30) return { cls: 'risk-low', label: 'Low risk', phrase: 'a mostly dry day' };
+      if (maxPct < 60) return { cls: 'risk-med', label: 'Moderate risk', phrase: 'a chance of passing showers' };
+      return { cls: 'risk-high', label: 'High risk', phrase: 'likely rain — consider a backup plan' };
+    }
+
+    function renderSummary(card, dayPeriods) {
+      const summaryEl = card.querySelector('[data-role="summary"]');
+      if (!dayPeriods.length) {
+        summaryEl.innerHTML = '<em>No hourly data for June 13 yet — check back after June 6, 2026.</em>';
+        return;
+      }
+      const probs = dayPeriods.map(p => p.probabilityOfPrecipitation?.value ?? 0);
+      const maxPct = Math.max(...probs);
+      const bucket = riskBucket(maxPct);
+      summaryEl.innerHTML = `
+        <span class="risk-label ${bucket.cls}">${bucket.label}</span>
+        Peak rain chance <strong>${maxPct}%</strong> — ${bucket.phrase}.
+      `;
+      return { maxPct, bucket };
+    }
+
+    function renderCurrent(card, periods) {
+      const dl = card.querySelector('[data-role="current"]');
+      if (!isWithinForecastWindow() || !periods.length) {
+        dl.innerHTML = '<dt>Current conditions</dt><dd><em>Check back after June 6, 2026.</em></dd>';
+        return;
+      }
+      const now = periods[0];
+      dl.innerHTML = `
+        <dt>Now</dt><dd>${now.temperature}°${now.temperatureUnit} &middot; ${now.shortForecast}</dd>
+        <dt>Wind</dt><dd>${now.windSpeed} ${now.windDirection}</dd>
+        <dt>Rain chance</dt><dd>${now.probabilityOfPrecipitation?.value ?? 0}%</dd>
+      `;
+    }
+
+    function renderChart(card, dayPeriods, venueKey) {
+      const canvas = card.querySelector('[data-role="chart"]');
+      if (!dayPeriods.length) {
+        canvas.parentElement.innerHTML = '<div class="placeholder">Hourly data unavailable — NWS provides hourly forecasts ~7 days out. Check back after June 6, 2026.</div>';
+        return;
+      }
+      const labels = dayPeriods.map(p => {
+        const d = new Date(p.startTime);
+        return d.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+      });
+      const data = dayPeriods.map(p => p.probabilityOfPrecipitation?.value ?? 0);
+      charts[venueKey] = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Precip %',
+            data,
+            backgroundColor: data.map(v => v < 30 ? '#8db89a' : v < 60 ? '#e0b080' : '#c47878'),
+            borderRadius: 3,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
+            x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }
+          }
+        }
+      });
+    }
+
+    function renderError(card, err) {
+      const summary = card.querySelector('[data-role="summary"]');
+      summary.outerHTML = `<div class="error">Couldn't load forecast: ${err.message}</div>`;
+    }
+
+    async function loadVenue(venue) {
+      const card = document.querySelector(`[data-venue="${venue.key}"]`);
+      try {
+        const periods = await getForecast(venue);
+        const dayPeriods = filterTargetDay(periods);
+        const summary = renderSummary(card, dayPeriods);
+        renderCurrent(card, periods);
+        renderChart(card, dayPeriods, venue.key);
+        return { venue, summary, dayPeriods };
+      } catch (err) {
+        renderError(card, err);
+        return { venue, error: err };
+      }
+    }
+
+    function initMap(results) {
+      const map = L.map('map').setView([28.69, -81.57], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 18,
+      }).addTo(map);
+      results.forEach(r => {
+        const popup = r.error
+          ? `<strong>${r.venue.name}</strong><br/>Forecast unavailable.`
+          : r.summary
+            ? `<strong>${r.venue.name}</strong><br/>Peak rain: ${r.summary.maxPct}%<br/><em>${r.summary.bucket.label}</em>`
+            : `<strong>${r.venue.name}</strong><br/>Hourly data available within 7 days of June 13.`;
+        L.marker([r.venue.lat, r.venue.lon]).addTo(map).bindPopup(popup);
+      });
+    }
+
+    async function loadBuildTimestamp() {
+      try {
+        const res = await fetch('last_built.json?t=' + Date.now());
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.built_at;
+      } catch { return null; }
+    }
+
+    async function main() {
+      const results = await Promise.all(VENUES.map(loadVenue));
+      initMap(results);
+      const built = await loadBuildTimestamp();
+      const now = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+      const builtStr = built ? ` &middot; Site rebuilt ${new Date(built).toLocaleDateString()}` : '';
+      document.getElementById('updated').innerHTML = `Forecast fetched ${now}${builtStr}`;
+    }
+
+    main();
+  </script>
+</body>
+</html>
